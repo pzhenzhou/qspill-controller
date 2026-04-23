@@ -1,0 +1,25 @@
+defaults:
+  nodeGroupLabelKey: volcano.sh/nodegroup-name
+  action: Nope
+  reconcileResyncPeriod: 30s
+  thresholds:
+    timeOn: 30s
+    timeOff: 10m
+    timePendingMax: 5m
+    hysteresis: 0.2
+policies:
+  - name: biz-a
+    queueName: biz-a
+    dedicatedNodeGroup: ng2
+    overflowNodeGroup: ng1
+    minNodes: 1
+    maxNodes: 5
+  - name: biz-b
+    queueName: biz-b
+    dedicatedNodeGroup: ng4
+    overflowNodeGroup: ng3
+    minNodes: 2
+    maxNodes: 8
+    thresholds:
+      timeOn: 1m
+      hysteresis: 0.5

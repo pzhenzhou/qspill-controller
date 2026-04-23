@@ -1,0 +1,19 @@
+# Headless ClusterIP service that exposes the controller's HTTP probes. The
+# controller does not serve any business API,
+# so no LoadBalancer / external port is required (DESIGN.md §10.4).
+apiVersion: v1
+kind: Service
+metadata:
+  name: qspill-controller
+  labels:
+    app.kubernetes.io/name: qspill-controller
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: qspill-controller
+    app.kubernetes.io/component: controller
+  ports:
+    - name: probe
+      port: 8081
+      targetPort: probe
+      protocol: TCP

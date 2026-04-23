@@ -1,0 +1,13 @@
+defaults:
+  nodeGroupLabelKey: volcano.sh/nodegroup-name
+  action: Patch
+  reconcileResyncPeriod: 1m
+  thresholds:
+    timeOn: 30s
+    timeOff: 5m
+    timePendingMax: 2m
+policies:
+  - name: only
+    queueName: only-queue
+    dedicatedNodeGroup: ded
+    overflowNodeGroup: ovr

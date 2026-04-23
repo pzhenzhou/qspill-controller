@@ -1,0 +1,24 @@
+# Permissions contract (DESIGN.md §3, §10.3, Appendix A):
+#   - read-only watches over PodGroups, Nodes, Pods, Events, ConfigMaps
+#   - read + server-side apply on Volcano Queues (FieldManager qspill-controller)
+#     -> 'patch' is required by SSA; 'update' is intentionally NOT granted
+#   - Event creation for human-visible spill / steady transitions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: qspill-controller
+  labels:
+    app.kubernetes.io/name: qspill-controller
+rules:
+  - apiGroups: ["scheduling.volcano.sh"]
+    resources: ["queues"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["scheduling.volcano.sh"]
+    resources: ["podgroups"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "configmaps"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create", "patch"]

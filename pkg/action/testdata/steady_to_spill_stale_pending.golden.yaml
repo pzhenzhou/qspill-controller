@@ -1,0 +1,41 @@
+---
+from: Steady
+hash: sha256:fixed-for-golden-test
+inputs:
+  autoscalerExhausted: false
+  demandCpu: "56"
+  demandEstimatedPGs: 0
+  demandMemory: 224Gi
+  maxCpu: "40"
+  maxMemory: 160Gi
+  overflowPodsOfPolicy: 0
+  stalePendingPods: 5
+  stalestPendingFor: 6m12s
+  timeInState: 31s
+observedAt: "2026-04-22T10:15:30Z"
+policy: biz-a
+queue:
+  apiVersion: scheduling.volcano.sh/v1beta1
+  kind: Queue
+  metadata:
+    annotations:
+      spill.example.com/condition-since: "2026-04-22T10:15:30Z"
+      spill.example.com/decision-hash: sha256:fixed-for-golden-test
+      spill.example.com/state: Spill
+    name: biz-a
+  spec:
+    affinity:
+      nodeGroupAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - ng2
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - ng2
+        - ng1
+    guarantee: {}
+  status:
+    allocated: null
+    reservation: {}
+reason: 'stale pending: 5 pods of policy "biz-a" unschedulable >5m0s (stalest 6m12s)
+  after cooldown 30s'
+to: Spill
+trigger: stale_pending

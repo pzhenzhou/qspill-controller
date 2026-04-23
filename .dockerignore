@@ -1,0 +1,11 @@
+.git
+.cursor
+bin
+tmp
+*.md
+!go.mod
+!go.sum
+deploy
+docker
+.dockerignore
+Makefile

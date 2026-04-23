@@ -1,0 +1,23 @@
+{
+  "defaults": {
+    "nodeGroupLabelKey": "volcano.sh/nodegroup-name",
+    "action": "Patch",
+    "reconcileResyncPeriod": "45s",
+    "thresholds": {
+      "timeOn": "20s",
+      "timeOff": "8m",
+      "timePendingMax": "3m",
+      "hysteresis": 0.1
+    }
+  },
+  "policies": [
+    {
+      "name": "biz-json",
+      "queueName": "biz-json",
+      "dedicatedNodeGroup": "ng-json-d",
+      "overflowNodeGroup": "ng-json-o",
+      "minNodes": 1,
+      "maxNodes": 4
+    }
+  ]
+}

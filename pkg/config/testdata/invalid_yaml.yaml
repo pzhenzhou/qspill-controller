@@ -1,0 +1,3 @@
+defaults:
+  nodeGroupLabelKey: volcano.sh/nodegroup-name
+  action Nope

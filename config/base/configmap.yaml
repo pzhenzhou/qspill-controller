@@ -1,0 +1,40 @@
+# qspill-controller — example configuration ConfigMap.
+#
+# The full schema is documented in DESIGN.md §5. The controller informer-watches
+# its own ConfigMap and atomically swaps the in-memory PolicyRegistry on every
+# valid change. PodGroup membership in a SpillPolicy is determined by spec.queue,
+# not by any label on the PodGroup itself; only nodegroup membership requires a
+# label key.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: qspill-controller-config
+  labels:
+    app.kubernetes.io/name: qspill-controller
+data:
+  config.yaml: |
+    defaults:
+      # Label key on Nodes that identifies nodegroup membership. Defaults to
+      # the value used by Volcano's nodegroup plugin.
+      nodeGroupLabelKey: volcano.sh/nodegroup-name
+      # Action mode: Nope (default; dry-run; emits YAML to stdout) or
+      # Patch (server-side apply against the Queue).
+      action: Nope
+      # Forced reconcile interval; belt-and-braces against missed watch events.
+      reconcileResyncPeriod: 30s
+      thresholds:
+        timeOn: 30s            # Steady -> Spill confirmation cooldown.
+        timeOff: 10m           # Spill  -> Steady base cooldown (extended by hysteresis).
+        timePendingMax: 5m     # Stale-pending liveness trigger threshold.
+        hysteresis: 0.2        # 0..1; switch-back sustain = timeOff * (1 + hysteresis).
+    policies:
+      - name: biz-a
+        queueName: biz-a
+        dedicatedNodeGroup: ng2
+        overflowNodeGroup: ng1
+        # minNodes / maxNodes are informational in v1 (autoscaler enforces the
+        # actual bounds); they appear in metrics labels and event messages.
+        minNodes: 1
+        maxNodes: 5
+        # Per-policy overrides (optional):
+        # thresholds: {}
