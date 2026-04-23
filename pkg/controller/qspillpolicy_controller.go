@@ -329,43 +329,33 @@ func (r *QSpillPolicyReconciler) calculateUtilization(queue *volcanov1beta1.Queu
 		return 0, nil
 	}
 
-	// CPU is preferred for utilization calculation as it is the most common
-	// scheduling bottleneck. Fall back to memory if CPU is not configured.
-	// AsApproximateFloat64 is acceptable here: small precision loss has
-	// negligible impact on threshold comparisons.
-	cpuCapacity, hasCPU := capacityList[corev1.ResourceCPU]
-	if !hasCPU || cpuCapacity.IsZero() {
-		memCapacity, hasMem := capacityList[corev1.ResourceMemory]
-		if !hasMem || memCapacity.IsZero() {
-			return 0, nil
+	// Calculate utilization for both CPU and memory, then take the maximum.
+	// A queue may be constrained by either resource; using the maximum ensures
+	// spill is triggered as soon as any principal resource is saturated.
+	// AsApproximateFloat64 is acceptable: small precision loss has negligible
+	// impact on threshold comparisons.
+	maxUtil := 0.0
+	for _, resourceName := range []corev1.ResourceName{corev1.ResourceCPU, corev1.ResourceMemory} {
+		capQty, hasCap := capacityList[resourceName]
+		if !hasCap || capQty.IsZero() {
+			continue
 		}
-		memAllocated := resource.MustParse("0")
+		allocated := resource.MustParse("0")
 		if allocatedList != nil {
-			if alloc, ok := allocatedList[corev1.ResourceMemory]; ok {
-				memAllocated = alloc
+			if alloc, ok := allocatedList[resourceName]; ok {
+				allocated = alloc
 			}
 		}
-		capVal := memCapacity.AsApproximateFloat64()
-		allocVal := memAllocated.AsApproximateFloat64()
+		capVal := capQty.AsApproximateFloat64()
 		if capVal == 0 {
-			return 0, nil
+			continue
 		}
-		return allocVal / capVal, nil
-	}
-
-	cpuAllocated := resource.MustParse("0")
-	if allocatedList != nil {
-		if alloc, ok := allocatedList[corev1.ResourceCPU]; ok {
-			cpuAllocated = alloc
+		util := allocated.AsApproximateFloat64() / capVal
+		if util > maxUtil {
+			maxUtil = util
 		}
 	}
-
-	capVal := cpuCapacity.AsApproximateFloat64()
-	allocVal := cpuAllocated.AsApproximateFloat64()
-	if capVal == 0 {
-		return 0, nil
-	}
-	return allocVal / capVal, nil
+	return maxUtil, nil
 }
 
 func (r *QSpillPolicyReconciler) calculateSpillCapacity(sourceQueue, targetQueue *volcanov1beta1.Queue, target qspillv1alpha1.SpillTarget) corev1.ResourceList {
@@ -382,9 +372,9 @@ func (r *QSpillPolicyReconciler) calculateSpillCapacity(sourceQueue, targetQueue
 		for resourceName, capQty := range sourceQueue.Spec.Capability {
 			capVal := capQty.AsApproximateFloat64()
 			spillVal := capVal * defaultSpillFraction
-			// Use MilliValue-based scaling only for CPU (dimensionless ratio).
-			// For all other resource types (memory, etc.) prefer integer quantities
-			// to avoid sub-byte precision issues; default to defaultSpillFraction of capacity.
+			// Use milli-quantity scaling for CPU to preserve fractional core allocations
+			// (e.g. 0.5 cores = 500m). For memory and other resources, use integer
+			// quantities to avoid sub-byte precision issues.
 			var spillQty *resource.Quantity
 			if resourceName == corev1.ResourceCPU {
 				spillQty = resource.NewMilliQuantity(int64(spillVal*1000), resource.DecimalSI)
