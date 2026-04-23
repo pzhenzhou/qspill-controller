@@ -8,7 +8,7 @@ The intended reader already knows Volcano, has used `PodGroup` / `Queue`, and is
 
 ## 1. Volcano `nodegroup` affinity: the thing this controller bends
 
-Volcano’s [`nodegroup` plugin](../../volcano/pkg/scheduler/plugins/nodegroup/nodegroup.go) reads `Queue.spec.affinity.nodeGroupAffinity` and constrains scheduling decisions for every `PodGroup` whose `spec.queue` points at that `Queue`. The relevant pieces are:
+Volcano’s `nodegroup` plugin reads `Queue.spec.affinity.nodeGroupAffinity` and constrains scheduling decisions for every `PodGroup` whose `spec.queue` points at that `Queue`. The relevant pieces are:
 
 - **A node label key**, e.g. `volcano.sh/nodegroup-name`, partitions cluster nodes into named pools (“nodegroups”). The same key is configurable on this controller (`defaults.nodeGroupLabelKey`).
 - **`required`** values are a hard predicate: a pod from this queue can only land on a node whose label value is in the list.
@@ -282,7 +282,7 @@ These are the assumptions the controller bakes in. Listing them in one place so 
 
 ### 9.1 Spill is a bias, not a strict ordering
 
-In Spill, both pools satisfy the `nodegroup` predicate, and `preferred: [dedicated]` adds a +50 score bias relative to `required` alone. Other node-order plugins still vote, so a busy-but-not-full overflow node can occasionally outrank an empty dedicated node. The bound on this effect is that Spill is *temporary* (entered only when dedicated is genuinely struggling, exited as soon as the overflow pool drains), so the misplacement window is bounded. Mitigations available without modifying Volcano are scheduler-side (reduce other plugins’ weights). This is documented in [`DESIGN.md`](../DESIGN.md) §7.7 in more depth.
+In Spill, both pools satisfy the `nodegroup` predicate, and `preferred: [dedicated]` adds a +50 score bias relative to `required` alone. Other node-order plugins still vote, so a busy-but-not-full overflow node can occasionally outrank an empty dedicated node. The bound on this effect is that Spill is *temporary* (entered only when dedicated is genuinely struggling, exited as soon as the overflow pool drains), so the misplacement window is bounded. Mitigations available without modifying Volcano are scheduler-side (reduce other plugins’ weights).
 
 ### 9.2 Volcano scheduler dependency
 
@@ -299,7 +299,7 @@ In Spill, both pools satisfy the `nodegroup` predicate, and `preferred: [dedicat
 ### 9.4 Autoscaler dependency
 
 - Autoscaler exhaustion is inferred from `corev1.Event` reasons `NotTriggerScaleUp` or `FailedScaling` involving a policy pod. This is the standard cluster-autoscaler behaviour; providers that emit different reasons reduce the autoscaler-explicit signal’s usefulness but do not affect correctness, because the stale-pending fallback covers any remaining gap.
-- Deeper, vendor-specific signals (e.g. ACK `ack-goatscaler` inventory ConfigMaps) are out of scope for v1 but documented in [`DESIGN.md`](../DESIGN.md) §6.3.1 as a future plug-in point.
+- Deeper, vendor-specific signals (e.g. ACK `ack-goatscaler` inventory ConfigMaps) are out of scope for v1 and left as a future plug-in point.
 
 ### 9.5 Kubernetes RBAC and runtime
 
@@ -323,33 +323,11 @@ The Deployment is single-replica-active (lease-protected) by design — there is
 |---|---|
 | Structured zap logs (`module=…` per package) | **Implemented** |
 | `/healthz` HTTP probe | **Implemented** |
-| `/metrics` (Prometheus) | **Not started** — no metrics server is currently exposed; the counters/gauges in [`DESIGN.md`](../DESIGN.md) §12 are targets, not implemented behaviour. |
+| `/metrics` (Prometheus) | **Not started** — no metrics server is currently exposed; counters/gauges are a future target, not implemented behaviour. |
 | Kubernetes Events on the Queue | **Not emitted** — the reconciler is constructed with a `nil` recorder; RBAC for `events` exists in anticipation. |
-
-Roadmap and phasing are tracked in [`IMPLEMENTATION.md`](../IMPLEMENTATION.md) (observability is the deferred Appendix A).
-
----
-
-## Where this document differs from `DESIGN.md`
-
-When the root [`DESIGN.md`](../DESIGN.md) and the code disagree, the code is the source of truth. The known, intentional deltas as of today:
-
-| Topic | `DESIGN.md` | Repository code |
-|---|---|---|
-| Binary path | `cmd/qspill-controller/main.go` | `cmd/controller/main.go` |
-| Deployment manifests directory | `deploy/` | `config/` (Kustomize overlays) |
-| Watcher manager type name | `WatcherManager` | `Manager` (`pkg/watcher`) |
-| PodGroup `onUpdate` change-detection fields | Includes `Status.MinResources` | `Spec.Queue`, `Status.Phase`, `Spec.MinMember`, `Spec.MinResources` only (`podGroupChanged`) |
-| Event informer | Field-selected list/watch | Cluster-wide list/watch; reason filter applied in handlers and snapshot |
-| Prometheus metrics | Specified in §12 | Flag is parsed; no metrics server registered |
-| `EventRecorder` on the reconciler | Emits events on every transition | Constructed with `nil`; no events emitted yet |
-| Where `time.Now()` is read | “Never outside SnapshotBuilder” | The reconciler reads it once and *passes* it into `Build`; the evaluator stays pure on `ObservedAt`. The intent (one clock for the whole pipeline) is preserved. |
-| `DESIGN.md` front-matter `todos` | Many `pending` | Implementation has progressed substantially; see [`IMPLEMENTATION.md`](../IMPLEMENTATION.md). |
 
 ---
 
 ## Related documents
 
-- [`DESIGN.md`](../DESIGN.md) — full narrative specification, failure modes, and future work.
-- [`IMPLEMENTATION.md`](../IMPLEMENTATION.md) — phase status and recorded deviations.
 - Example config: [`config/base/configmap.yaml`](../config/base/configmap.yaml).
