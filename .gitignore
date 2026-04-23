@@ -1,0 +1,15 @@
+# Build artifacts
+bin/
+cover.out
+
+# Go
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
