@@ -1,6 +1,6 @@
 # Queue spill controller — design
 
-This document explains *why* the controller is shaped the way it is, by walking through the small set of design decisions that the current code rests on. It is written to match the code in this repository; **the code is the source of truth** whenever prose and implementation disagree.
+This document explains *why* the controller is shaped the way it is, by walking through the small set of design decisions it rests on.
 
 The intended reader already knows Volcano, has used `PodGroup` / `Queue`, and is comfortable with the idea of an elastic node pool. The Volcano-specific primer in [§1](#1-volcano-nodegroup-affinity-the-thing-this-controller-bends) only fixes the vocabulary used in the rest of the document.
 
