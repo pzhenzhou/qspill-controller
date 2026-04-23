@@ -325,6 +325,10 @@ func (r *QSpillPolicyReconciler) calculateUtilization(queue *volcanov1beta1.Queu
 		return 0, nil
 	}
 
+	// CPU is preferred for utilization calculation as it is the most common
+	// scheduling bottleneck. Fall back to memory if CPU is not configured.
+	// AsApproximateFloat64() is acceptable here: small precision loss has
+	// negligible impact on threshold comparisons.
 	cpuCapacity, hasCPU := capacityList[corev1.ResourceCPU]
 	if !hasCPU || cpuCapacity.IsZero() {
 		memCapacity, hasMem := capacityList[corev1.ResourceMemory]
@@ -374,7 +378,15 @@ func (r *QSpillPolicyReconciler) calculateSpillCapacity(sourceQueue, targetQueue
 		for resourceName, capQty := range sourceQueue.Spec.Capability {
 			capVal := capQty.AsApproximateFloat64()
 			spillVal := capVal * 0.1
-			spillQty := resource.NewMilliQuantity(int64(spillVal*1000), resource.DecimalSI)
+			// Use MilliValue-based scaling only for CPU (dimensionless ratio).
+			// For all other resource types (memory, etc.) prefer integer quantities
+			// to avoid sub-byte precision issues; fall back to 10% via NewQuantity.
+			var spillQty *resource.Quantity
+			if resourceName == corev1.ResourceCPU {
+				spillQty = resource.NewMilliQuantity(int64(spillVal*1000), resource.DecimalSI)
+			} else {
+				spillQty = resource.NewQuantity(int64(spillVal), resource.BinarySI)
+			}
 			result[resourceName] = *spillQty
 		}
 	}
