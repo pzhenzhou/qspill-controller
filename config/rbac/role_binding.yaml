@@ -1,0 +1,13 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: qspill-controller-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: qspill-controller-role
+subjects:
+- kind: ServiceAccount
+  name: qspill-controller-sa
+  namespace: qspill-system

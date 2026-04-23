@@ -1,0 +1,49 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: qspill-controller-role
+rules:
+- apiGroups:
+  - scheduling.qspill.io
+  resources:
+  - qspillpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - scheduling.qspill.io
+  resources:
+  - qspillpolicies/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - scheduling.qspill.io
+  resources:
+  - qspillpolicies/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - scheduling.volcano.sh
+  resources:
+  - queues
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
