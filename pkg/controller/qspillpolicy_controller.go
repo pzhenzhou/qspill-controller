@@ -28,6 +28,10 @@ const (
 	conditionTypeSpilling = "Spilling"
 	conditionTypeReady    = "Ready"
 	finalizerName         = "scheduling.qspill.io/finalizer"
+
+	// defaultSpillFraction is the fraction of source queue capacity spilled
+	// to a target queue when no MaxSpillCapacity is specified.
+	defaultSpillFraction = 0.1
 )
 
 // QSpillPolicyReconciler reconciles a QSpillPolicy object
@@ -377,10 +381,10 @@ func (r *QSpillPolicyReconciler) calculateSpillCapacity(sourceQueue, targetQueue
 	if sourceQueue.Spec.Capability != nil {
 		for resourceName, capQty := range sourceQueue.Spec.Capability {
 			capVal := capQty.AsApproximateFloat64()
-			spillVal := capVal * 0.1
+			spillVal := capVal * defaultSpillFraction
 			// Use MilliValue-based scaling only for CPU (dimensionless ratio).
 			// For all other resource types (memory, etc.) prefer integer quantities
-			// to avoid sub-byte precision issues; default to 10% of capacity.
+			// to avoid sub-byte precision issues; default to defaultSpillFraction of capacity.
 			var spillQty *resource.Quantity
 			if resourceName == corev1.ResourceCPU {
 				spillQty = resource.NewMilliQuantity(int64(spillVal*1000), resource.DecimalSI)
