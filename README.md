@@ -12,5 +12,5 @@ the scheduler considers for **future** placements.
 ## Build
 
 ```sh
-go build -o bin/qspill-controller ./cmd/qspill-controller
+go build -o bin/qspill-controller ./cmd/controller
 ```
